@@ -68,8 +68,6 @@ class TwitchController extends DummyController {
         player.addEventListener(Twitch.Player.PLAYING, event => {
             this.awaitingPlayingEvent = false
 
-            this.controls(this.container.querySelector('iframe').contentWindow.navigator.mediaSession)
-
             if (!this.duration)
                 this.duration = player.getDuration() === Infinity ? -1 : player.getDuration()
 

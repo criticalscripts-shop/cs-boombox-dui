@@ -99,9 +99,6 @@ class YouTubeController extends DummyController {
                         if (((!ytVideoId) || ytVideoId[1] !== this.source) && this.source !== null)
                             return
 
-                        if (this.player.getPlayerState() === YT.PlayerState.PLAYING)
-                            this.controls(this.player.getIframe().contentWindow.navigator.mediaSession)
-
                         if ((this.player.getPlayerState() === YT.PlayerState.ENDED || this.player.getPlayerState() === -1) && this.playing)
                             this.manager.controllerEnded(this)
 

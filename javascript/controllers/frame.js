@@ -108,8 +108,6 @@ class FrameController extends DummyController {
             })
 
             this.element.addEventListener('playing', event => {
-                this.controls(this.frame.contentWindow.navigator.mediaSession)
-
                 if (this.playing)
                     return
 

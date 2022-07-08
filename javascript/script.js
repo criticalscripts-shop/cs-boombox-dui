@@ -1,7 +1,7 @@
 const hash = window.location.hash ? window.location.hash.replace('#', '') : null
 const hashData = hash ? hash.split('|') : []
 const resourceName = hashData[0]
-const uuid = hashData[1]
+const uniqueId = hashData[1]
 const urlCheckElement = document.createElement('input')
 const lerp = (a, b, t) => (a * (1 - t)) + (b * t)
 
@@ -66,8 +66,8 @@ class Speaker {
 }
 
 class MediaManager {
-    constructor(uuid) {
-        this.uuid = uuid
+    constructor(uniqueId) {
+        this.uniqueId = uniqueId
         this.playing = false
 
         this.syncedData = {
@@ -101,7 +101,7 @@ class MediaManager {
         fetch(`https://${resourceName}/managerReady`, {
             method: 'POST',
             body: JSON.stringify({
-                uuid: this.uuid
+                uniqueId: this.uniqueId
             })
         }).catch(error => {})
 
@@ -109,11 +109,11 @@ class MediaManager {
     }
 
     controllerPlayingInfo(controller) {
-        if (controller.key === this.controller.key && this.uuid)
+        if (controller.key === this.controller.key && this.uniqueId)
             fetch(`https://${resourceName}/controllerPlayingInfo`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    uuid: this.uuid,
+                    uniqueId: this.uniqueId,
                     time: controller.time(),
                     duration: controller.duration,
                     playing: controller.playing
@@ -131,7 +131,7 @@ class MediaManager {
             fetch(`https://${resourceName}/controllerSeeked`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    uuid: this.uuid,
+                    uniqueId: this.uniqueId,
                     controller: controller.key
                 })
             }).catch(error => {})
@@ -142,7 +142,7 @@ class MediaManager {
             fetch(`https://${resourceName}/controllerError`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    uuid: this.uuid,
+                    uniqueId: this.uniqueId,
                     controller: controller.key,
                     error
                 })
@@ -154,7 +154,7 @@ class MediaManager {
             fetch(`https://${resourceName}/controllerEnded`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    uuid: this.uuid,
+                    uniqueId: this.uniqueId,
                     controller: controller.key
                 })
             }).catch(error => {})
@@ -165,7 +165,7 @@ class MediaManager {
             fetch(`https://${resourceName}/controllerResync`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    uuid: this.uuid,
+                    uniqueId: this.uniqueId,
                     controller: controller.key
                 })
             }).catch(error => {})
@@ -194,10 +194,10 @@ class MediaManager {
     }
 
     sync(data) {
-        this.uuid = data.uuid
+        this.uniqueId = data.uniqueId
 
         this.set(data.url !== this.syncedData.url || data.temp.force, data.playing, data.url).then(() => {
-            if (this.uuid !== data.uuid)
+            if (this.uniqueId !== data.uniqueId)
                 return
 
             if ((data.stopped !== this.syncedData.stopped || data.temp.force) && data.stopped)
@@ -220,7 +220,7 @@ class MediaManager {
             fetch(`https://${resourceName}/synced`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    uuid: this.uuid
+                    uniqueId: this.uniqueId
                 })
             }).catch(error => {})
         })
@@ -362,12 +362,12 @@ window.addEventListener('message', event => {
             if (activeInstance)
                 return
 
-            activeInstance = new MediaManager(event.data.uuid)
+            activeInstance = new MediaManager(event.data.uniqueId)
 
             break
 
         case 'cs-boombox:update':
-            if ((!activeInstance) || event.data.uuid !== activeInstance.uuid)
+            if ((!activeInstance) || event.data.uniqueId !== activeInstance.uniqueId)
                 return
 
             activeInstance.update({
@@ -378,7 +378,7 @@ window.addEventListener('message', event => {
             break
 
         case 'cs-boombox:addSpeaker':
-            if ((!activeInstance) || event.data.uuid !== activeInstance.uuid)
+            if ((!activeInstance) || event.data.uniqueId !== activeInstance.uniqueId)
                 return
 
             activeInstance.addSpeaker(event.data.speakerId, {
@@ -395,11 +395,11 @@ window.addEventListener('message', event => {
             break
 
         case 'cs-boombox:sync':
-            if ((!activeInstance) || event.data.uuid !== activeInstance.uuid)
+            if ((!activeInstance) || event.data.uniqueId !== activeInstance.uniqueId)
                 return
 
             activeInstance.sync({
-                uuid: event.data.uuid,
+                uniqueId: event.data.uniqueId,
                 playing: event.data.playing,
                 stopped: event.data.stopped,
                 time: event.data.time,
@@ -412,7 +412,7 @@ window.addEventListener('message', event => {
             break
 
         case 'cs-boombox:adjust':
-            if ((!activeInstance) || event.data.uuid !== activeInstance.uuid)
+            if ((!activeInstance) || event.data.uniqueId !== activeInstance.uniqueId)
                 return
 
             activeInstance.adjust(event.data.time)
@@ -426,6 +426,6 @@ urlCheckElement.setAttribute('type', 'url')
 fetch(`https://${resourceName}/browserReady`, {
     method: 'POST',
     body: JSON.stringify({
-        uuid
+        uniqueId
     })
 }).catch(error => {})

@@ -6,7 +6,6 @@ const urlCheckElement = document.createElement('input')
 const lerp = (a, b, t) => (a * (1 - t)) + (b * t)
 
 const gainLerpIntervalMs = 16.66
-const filterLerpIntervalMs = 16.66
 const playingInfoUpdateIntervalMs = 500
 
 let activeInstance = null
@@ -18,23 +17,12 @@ class Speaker {
         this.manager = manager
 
         this.volumeMultiplier = this.options.volumeMultiplier
-        this.filterGainMultiplier = 1.0
         this.distanceMultiplier = 1.0
-        this.applyLowPassFilter = true
 
-        this.filter = this.manager.context.createBiquadFilter()
         this.panner = this.manager.context.createPanner()
         this.gain = this.manager.context.createGain()
 
-        this.filter.type = 'highshelf'
-        this.filter.frequency.value = 975
-        this.filter.gain.value = -40.0
-
         this.gain.gain.value = 0.0
-
-        this.filterLerp = {
-            interval: null
-        }
 
         this.gainLerp = {
             interval: null
@@ -53,9 +41,6 @@ class Speaker {
         this.panner.connect(this.gain)
         this.gain.connect(this.manager.context.destination)
 
-        this.lowPassFilterFade = 0.0
-        this.filterConnected = false
-        this.insideVehicle = false
         this.twoDimensionalAudio = false
     }
 
@@ -67,17 +52,6 @@ class Speaker {
         this.panner.orientationX.setValueAtTime(Math.round(data.orientation[0]), this.manager.context.currentTime + this.manager.timeDelta)
         this.panner.orientationY.setValueAtTime(Math.round(data.orientation[1]), this.manager.context.currentTime + this.manager.timeDelta)
         this.panner.orientationZ.setValueAtTime(Math.round(data.orientation[2]), this.manager.context.currentTime + this.manager.timeDelta)
-
-        if (data.lowPassFilterFade !== this.lowPassFilterFade || (this.applyLowPassFilter !== this.manager.applyLowPassFilter) || (this.filterConnected !== this.manager.applyLowPassFilter)) {
-            this.applyLowPassFilter = this.manager.applyLowPassFilter
-            this.lowPassFilterFade = data.lowPassFilterFade
-            this.applyingLowPassFilter = this.lowPassFilterFade > 0
-
-            if (!this.applyLowPassFilter)
-                this.disconnectFilter()
-            else
-                this.connectFilter(this.lowPassFilterFade)
-        }
         
         const linearMultiplier = 1.0 - ((data.distance - this.options.refDistance) / (this.options.maxDistance - this.options.refDistance))
         const exponentialMultiplier = Math.pow(Math.max(data.distance, this.options.refDistance) / this.options.refDistance, -this.options.rolloffFactor)
@@ -87,79 +61,7 @@ class Speaker {
         else
             this.panner.distanceModel = 'exponential'
 
-        this.gain.gain.value = 0.75 * (this.manager.volume * this.volumeMultiplier * this.filterGainMultiplier)
-
-        if (this.manager.insideVehicle !== this.insideVehicle) {
-            this.insideVehicle = this.manager.insideVehicle
-
-            if (this.insideVehicle) {
-                this.twoDimensionalAudio = true
-                this.manager.node.disconnect(this.panner)
-                this.manager.node.connect(this.gain)
-            } else if (this.twoDimensionalAudio) {
-                this.twoDimensionalAudio = false
-                this.manager.node.disconnect(this.gain)
-                this.manager.node.connect(this.panner)
-            }
-        }
-    }
-
-    connectFilter(fade) {
-        clearInterval(this.filterLerp.interval)
-        clearInterval(this.gainLerp.interval)
-        
-        this.filterLerp.startValue = this.filter.gain.value
-        this.filterLerp.startTime = Date.now()
-        this.filterLerp.targetValue = fade * -40.0
-
-        this.gainLerp.startValue = this.filterGainMultiplier
-        this.gainLerp.startTime = Date.now()
-        this.gainLerp.targetValue = this.applyingLowPassFilter ? ((100 - this.options.lowPassGainReductionPercent) / 100) : 1.0
-        
-        this.filterLerp.interval = setInterval(() => {
-            const timeSinceStarted = Date.now() - this.filterLerp.startTime
-            const percentageComplete = timeSinceStarted / this.options.fadeDurationMs
-
-            this.filter.gain.value = percentageComplete >= 1.0 ? this.filterLerp.targetValue : lerp(this.filterLerp.startValue, this.filterLerp.targetValue, percentageComplete)
-
-            if (percentageComplete >= 1.0)
-                clearInterval(this.filterLerp.interval)
-        }, filterLerpIntervalMs)
-        
-        this.gainLerp.interval = setInterval(() => {
-            const timeSinceStarted = Date.now() - this.gainLerp.startTime
-            const percentageComplete = timeSinceStarted / this.options.fadeDurationMs
-
-            this.filterGainMultiplier = percentageComplete >= 1.0 ? this.gainLerp.targetValue : lerp(this.gainLerp.startValue, this.gainLerp.targetValue, percentageComplete)
-
-            if (percentageComplete >= 1.0)
-                clearInterval(this.gainLerp.interval)
-        }, gainLerpIntervalMs)
-
-        if (this.filterConnected)
-            return
-
-        this.gain.disconnect(this.manager.context.destination)
-        this.gain.connect(this.filter)
-        this.filter.connect(this.manager.context.destination)
-
-        this.filterConnected = true
-    }
-
-    disconnectFilter() {
-        if (!this.filterConnected)
-            return
-
-        clearInterval(this.filterLerp.interval)
-        clearInterval(this.gainLerp.interval)
-
-        this.filter.disconnect(this.manager.context.destination)
-        this.gain.disconnect(this.filter)
-        this.gain.connect(this.manager.context.destination)
-        this.filter.gain.value = -40.0
-
-        this.filterConnected = false
-        this.filterGainMultiplier = 1.0
+        this.gain.gain.value = 0.75 * (this.manager.volume * this.volumeMultiplier)
     }
 }
 
@@ -181,7 +83,6 @@ class MediaManager {
         this.speakers = {}
 
         this.volume = 0.0
-        this.applyLowPassFilter = true
 
         this.context = new AudioContext()
         this.node = this.context.createGain()
@@ -286,9 +187,6 @@ class MediaManager {
         this.listener.positionX.setValueAtTime(Math.round(data.listener.position[0]), this.context.currentTime + this.timeDelta)
         this.listener.positionY.setValueAtTime(Math.round(data.listener.position[1]), this.context.currentTime + this.timeDelta)
         this.listener.positionZ.setValueAtTime(Math.round(data.listener.position[2]), this.context.currentTime + this.timeDelta)
-
-        this.applyLowPassFilter = data.applyLowPassFilter
-        this.insideVehicle = data.insideVehicle
     }
 
     addSpeaker(id, options) {
@@ -473,8 +371,6 @@ window.addEventListener('message', event => {
                 return
 
             activeInstance.update({
-                applyLowPassFilter: event.data.applyLowPassFilter,
-                insideVehicle: event.data.insideVehicle,
                 listener: event.data.listener,
                 speakers: event.data.speakers
             })
@@ -493,8 +389,7 @@ window.addEventListener('message', event => {
                 coneOuterAngle: event.data.coneOuterAngle,
                 coneOuterGain: event.data.coneOuterGain,
                 fadeDurationMs: event.data.fadeDurationMs,
-                volumeMultiplier: event.data.volumeMultiplier,
-                lowPassGainReductionPercent: event.data.lowPassGainReductionPercent
+                volumeMultiplier: event.data.volumeMultiplier
             })
 
             break

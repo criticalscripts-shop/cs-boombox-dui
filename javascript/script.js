@@ -31,7 +31,7 @@ class Speaker {
         this.panner.panningModel = 'HRTF'
         this.panner.distanceModel = 'exponential'
         this.panner.refDistance = this.options.refDistance
-        this.panner.maxDistance = this.options.maxDistance
+        // this.panner.maxDistance = this.options.maxDistance
         this.panner.rolloffFactor = this.options.rolloffFactor
         this.panner.coneInnerAngle = this.options.coneInnerAngle
         this.panner.coneOuterAngle = this.options.coneOuterAngle
@@ -52,16 +52,8 @@ class Speaker {
         this.panner.orientationX.setValueAtTime(Math.round(data.orientation[0]), this.manager.context.currentTime + this.manager.timeDelta)
         this.panner.orientationY.setValueAtTime(Math.round(data.orientation[1]), this.manager.context.currentTime + this.manager.timeDelta)
         this.panner.orientationZ.setValueAtTime(Math.round(data.orientation[2]), this.manager.context.currentTime + this.manager.timeDelta)
-        
-        const linearMultiplier = 1.0 - ((data.distance - this.options.refDistance) / (this.options.maxDistance - this.options.refDistance))
-        const exponentialMultiplier = Math.pow(Math.max(data.distance, this.options.refDistance) / this.options.refDistance, -this.options.rolloffFactor)
 
-        if (linearMultiplier < exponentialMultiplier)
-            this.panner.distanceModel = 'linear'
-        else
-            this.panner.distanceModel = 'exponential'
-
-        this.gain.gain.value = 0.75 * (this.manager.volume * this.volumeMultiplier)
+        this.gain.gain.value = 0.75 * this.manager.volume * this.volumeMultiplier * (data.distance < this.options.refDistance ? 1.0 : (data.distance - this.options.refDistance) > this.options.maxDistance ? 0 : (1.0 - ((data.distance - this.options.refDistance) / this.options.maxDistance)))
     }
 }
 

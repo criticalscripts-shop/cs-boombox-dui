@@ -31,7 +31,7 @@ class Speaker {
         this.panner.panningModel = 'HRTF'
         this.panner.distanceModel = 'exponential'
         this.panner.refDistance = this.options.refDistance
-        // this.panner.maxDistance = this.options.maxDistance
+        this.panner.maxDistance = this.options.maxDistance
         this.panner.rolloffFactor = this.options.rolloffFactor
         this.panner.coneInnerAngle = this.options.coneInnerAngle
         this.panner.coneOuterAngle = this.options.coneOuterAngle

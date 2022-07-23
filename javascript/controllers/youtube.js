@@ -43,8 +43,6 @@ class YouTubeController extends DummyController {
                 width: '100%',
                 height: '100%',
 
-                host: 'https://www.youtube-nocookie.com',
-
                 playerVars: {
                     autoplay: 0,
                     muted: 1,
